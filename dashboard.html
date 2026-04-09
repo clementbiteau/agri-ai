@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agri·AI — GRaiNE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Outfit', system-ui, sans-serif; background: #f2f5f0; color: #1a2410; overflow-x: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: #0f2d1a;
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 18px 18px;
+      width: 64px;
+      min-width: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0 16px;
+      gap: 6px;
+    }
+    .sidebar-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; color: rgba(255,255,255,0.35); }
+    .sidebar-icon:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); }
+    .sidebar-icon.active { background: rgba(93,174,122,0.2); color: #7ecba1; }
+
+    /* ── Card ── */
+    .card { background: #fff; border-radius: 16px; border: 1px solid #e4ebe0; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03); }
+
+    /* ── GRaiNE agent card ── */
+    .graine-card {
+      background: linear-gradient(140deg, #0f2d1a 0%, #1c4a28 60%, #245035 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(93,174,122,0.2);
+      box-shadow: 0 8px 40px rgba(15,45,26,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .graine-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(93,174,122,0.12), transparent 70%);
+      border-radius: 50%;
+    }
+
+    /* ── Action item ── */
+    .action-item { border-radius: 12px; border: 1px solid #e4ebe0; background: #fff; transition: box-shadow 0.18s, border-color 0.18s; cursor: pointer; }
+    .action-item:hover { border-color: #bcdfc8; box-shadow: 0 4px 20px rgba(42,117,73,0.08); }
+    .action-item.done { background: #f8fbf7; border-color: #d4ecd9; }
+    .action-item.urgent { border-color: #fde68a; background: #fffdf5; }
+    .action-item.blocked { border-color: #fecaca; background: #fff9f9; }
+
+    /* ── Badge ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em; }
+    .badge-done    { background: #dcfce7; color: #15803d; }
+    .badge-pending { background: #fef9c3; color: #92400e; }
+    .badge-urgent  { background: #fee2e2; color: #b91c1c; }
+    .badge-waiting { background: #eff6ff; color: #1d4ed8; }
+
+    /* ── Pulse ── */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.85); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .pulse { position: relative; }
+    .pulse::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #3a9260; animation: pulse-ring 2s ease-out infinite; }
+
+    /* ── Chat ── */
+    .bubble-me  { background: #e8f0e4; border-radius: 14px 14px 4px 14px; padding: 9px 13px; font-size: 0.8rem; color: #1a2410; max-width: 82%; align-self: flex-end; }
+    .bubble-ai  { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px 14px 14px 4px; padding: 9px 13px; font-size: 0.8rem; color: rgba(255,255,255,0.88); max-width: 90%; align-self: flex-start; line-height: 1.55; }
+
+    /* ── Scroll ── */
+    .scroll { overflow-y: auto; }
+    .scroll::-webkit-scrollbar { width: 4px; }
+    .scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+    /* ── Fade in ── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-up { animation: fadeUp 0.35s ease forwards; }
+    .d1 { animation-delay: 0.05s; opacity: 0; }
+    .d2 { animation-delay: 0.12s; opacity: 0; }
+    .d3 { animation-delay: 0.19s; opacity: 0; }
+    .d4 { animation-delay: 0.26s; opacity: 0; }
+
+    /* ── Validate btn ── */
+    .btn-validate {
+      background: linear-gradient(135deg, #2a7549, #3a9260);
+      color: #fff; border: none; border-radius: 9px;
+      padding: 9px 20px; font-size: 0.78rem; font-weight: 600;
+      font-family: 'Outfit', sans-serif; cursor: pointer;
+      transition: all 0.18s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-validate:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(42,117,73,0.35); }
+    .btn-validate:disabled { opacity: 0.4; transform: none; box-shadow: none; cursor: default; }
+
+    .btn-secondary {
+      background: #f2f5f0; color: #4a6040; border: 1px solid #d4dece;
+      border-radius: 9px; padding: 9px 16px; font-size: 0.78rem; font-weight: 500;
+      font-family: 'Outfit', sans-serif; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-secondary:hover { background: #e8ede4; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: #eef1ec; margin: 0; }
+
+    /* ── Stat pill ── */
+    .stat-pill { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div style="display: flex; height: 100vh; overflow: hidden;">
+
+  <!-- ════════ SIDEBAR ICONS ════════ -->
+  <aside class="sidebar">
+    <!-- Logo -->
+    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #2a7549, #5dae7a); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; flex-shrink: 0;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" stroke="#fff" stroke-width="1.3"/><circle cx="8" cy="8" r="2" fill="#fff"/></svg>
+    </div>
+
+    <!-- Dashboard (active) -->
+    <div class="sidebar-icon active" title="Tableau de bord">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+    </div>
+
+    <!-- Documents -->
+    <div class="sidebar-icon" title="Documents">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+    </div>
+
+    <!-- Tâches -->
+    <div class="sidebar-icon" title="Tâches" style="position: relative;">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+      <span style="position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: #ef4444; border-radius: 50%; border: 1.5px solid #0f2d1a;"></span>
+    </div>
+
+    <!-- Calendrier -->
+    <div class="sidebar-icon" title="Calendrier">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+    </div>
+
+    <!-- Rapports -->
+    <div class="sidebar-icon" title="Rapports">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <!-- Retour site -->
+    <a href="index.html" title="Retour au site" class="sidebar-icon" style="text-decoration: none;">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+    </a>
+
+    <!-- Settings -->
+    <div class="sidebar-icon" title="Paramètres">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+    </div>
+
+    <!-- Avatar -->
+    <div style="width: 34px; height: 34px; background: linear-gradient(135deg, #2a7549, #5dae7a); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; color: #fff; margin-top: 10px; cursor: pointer; flex-shrink: 0;" title="Jean-Pierre Martin">JP</div>
+  </aside>
+
+  <!-- ════════ MAIN ════════ -->
+  <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+
+    <!-- TOPBAR -->
+    <header style="height: 56px; background: #fff; border-bottom: 1px solid #e4ebe0; display: flex; align-items: center; padding: 0 28px; gap: 14px; flex-shrink: 0;">
+      <div>
+        <span style="font-size: 0.95rem; font-weight: 600; color: #1a2410;">Agri·AI</span>
+        <span style="font-size: 0.95rem; font-weight: 300; color: #6b8f5a; margin-left: 6px;">/ Tableau de bord</span>
+      </div>
+      <div style="flex: 1;"></div>
+      <!-- Date -->
+      <span style="font-size: 0.78rem; color: #8aaa78; background: #f2f5f0; padding: 5px 12px; border-radius: 8px; font-weight: 400;">Lundi 7 avril 2026</span>
+      <!-- Notif -->
+      <div style="position: relative; cursor: pointer;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 24 24" style="color: #6b8f5a;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
+        <span style="position: absolute; top: -2px; right: -3px; width: 14px; height: 14px; background: #ef4444; border-radius: 50%; font-size: 0.55rem; color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 700;">1</span>
+      </div>
+      <!-- User -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 30px; height: 30px; background: linear-gradient(135deg, #2a7549, #5dae7a); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff;">JP</div>
+        <span style="font-size: 0.8rem; font-weight: 500; color: #2a3820;">Jean-Pierre Martin</span>
+      </div>
+    </header>
+
+    <!-- SCROLL AREA -->
+    <main class="scroll" style="flex: 1; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px;">
+
+      <!-- GREETING -->
+      <div class="fade-up d1" style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h1 style="font-size: 1.4rem; font-weight: 600; color: #1a2410; letter-spacing: -0.01em;">Bonjour, Jean-Pierre</h1>
+          <p style="font-size: 0.83rem; color: #6b8f5a; margin-top: 3px; font-weight: 400;">GRaiNE a travaillé pour vous ce matin. Voici ce qu'il a préparé.</p>
+        </div>
+        <!-- Upload -->
+        <label style="background: #fff; border: 1.5px dashed #bcdfc8; border-radius: 10px; padding: 8px 18px; font-size: 0.78rem; color: #3a7d54; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s;" onmouseenter="this.style.background='#f0faf4'" onmouseleave="this.style.background='#fff'">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" style="color: #3a7d54;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+          Déposer un document
+          <input type="file" style="display: none;" />
+        </label>
+      </div>
+
+      <!-- 2-COL LAYOUT -->
+      <div style="display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start;">
+
+        <!-- ── LEFT ── -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+
+          <!-- ══ GRAINE CARD ══ -->
+          <div class="graine-card fade-up d1" style="padding: 26px 28px;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px;">
+              <div style="position: relative; flex-shrink: 0;">
+                <div style="width: 42px; height: 42px; background: linear-gradient(135deg, rgba(93,174,122,0.3), rgba(58,146,96,0.15)); border: 1px solid rgba(93,174,122,0.35); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" style="color: #7ecba1;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg>
+                </div>
+                <div class="pulse" style="position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px; background: #3a9260; border-radius: 50%; border: 2px solid #0f2d1a;"></div>
+              </div>
+              <div>
+                <p style="font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 0.01em;">GRaiNE</p>
+                <p style="font-size: 0.72rem; color: rgba(255,255,255,0.45); font-weight: 300;">Votre agent administratif · actif depuis 7h12</p>
+              </div>
+              <div style="margin-left: auto; display: flex; gap: 20px;">
+                <div class="stat-pill">
+                  <div style="font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1;">4</div>
+                  <div style="font-size: 0.62rem; color: rgba(255,255,255,0.4); margin-top: 2px;">docs traités</div>
+                </div>
+                <div class="stat-pill">
+                  <div style="font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1;">2</div>
+                  <div style="font-size: 0.62rem; color: rgba(255,255,255,0.4); margin-top: 2px;">actions prêtes</div>
+                </div>
+                <div class="stat-pill" style="border-color: rgba(251,191,36,0.25); background: rgba(251,191,36,0.08);">
+                  <div style="font-size: 1.5rem; font-weight: 700; color: #fbbf24; line-height: 1;">1</div>
+                  <div style="font-size: 0.62rem; color: rgba(251,191,36,0.6); margin-top: 2px;">bloquant</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ce que GRaiNE a fait -->
+            <p style="font-size: 0.65rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 10px;">Ce que j'ai fait ce matin</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+
+              <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 22px; height: 22px; background: rgba(34,197,94,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="color: #4ade80;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                </div>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.75); font-weight: 400; flex: 1;">J'ai analysé <strong style="color: #fff; font-weight: 600;">23 factures engrais</strong> et extrait les montants, dates et fournisseurs.</p>
+              </div>
+
+              <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 22px; height: 22px; background: rgba(34,197,94,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="color: #4ade80;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                </div>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.75); font-weight: 400; flex: 1;">J'ai mis à jour votre <strong style="color: #fff; font-weight: 600;">suivi des échéances</strong> — la TVA arrive dans 23 jours.</p>
+              </div>
+
+              <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 22px; height: 22px; background: rgba(34,197,94,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="color: #4ade80;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                </div>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.75); font-weight: 400; flex: 1;">J'ai classé le <strong style="color: #fff; font-weight: 600;">bon de livraison</strong> et le <strong style="color: #fff; font-weight: 600;">relevé bancaire mars</strong>.</p>
+              </div>
+
+            </div>
+
+            <!-- Ce que GRaiNE propose -->
+            <p style="font-size: 0.65rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 10px;">Ce que je propose de faire — en attente de votre accord</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+
+              <!-- Proposal 1 — urgent -->
+              <div style="background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.22); border-radius: 10px; padding: 13px 14px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 22px; height: 22px; background: rgba(251,191,36,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="color: #fbbf24;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                </div>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8); flex: 1; line-height: 1.5;">Préparer la <strong style="color: #fde68a;">déclaration TVA Q1</strong> pour signature — échéance 30 avril</p>
+                <button class="btn-validate" style="padding: 7px 16px; font-size: 0.74rem;" onclick="validateAction(this, 'TVA')">Valider →</button>
+              </div>
+
+              <!-- Proposal 2 -->
+              <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 13px 14px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 22px; height: 22px; background: rgba(93,174,122,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="color: #7ecba1;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                </div>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8); flex: 1; line-height: 1.5;">Générer le <strong style="color: #fff;">rapport de consommation engrais</strong> — avril 2026</p>
+                <button class="btn-validate" style="padding: 7px 16px; font-size: 0.74rem;" onclick="validateAction(this, 'Rapport')">Valider →</button>
+              </div>
+
+              <!-- Proposal 3 — blocked -->
+              <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 13px 14px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 22px; height: 22px; background: rgba(239,68,68,0.12); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="color: #f87171;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+                </div>
+                <div style="flex: 1;">
+                  <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8); line-height: 1.5;">Compléter le <strong style="color: #fca5a5;">dossier PAC 2026</strong> — bloqué : justificatif MSA manquant</p>
+                  <p style="font-size: 0.68rem; color: rgba(248,113,113,0.7); margin-top: 3px;">Document requis de votre part</p>
+                </div>
+                <button style="background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 7px 14px; font-size: 0.74rem; font-family: 'Outfit', sans-serif; font-weight: 500; cursor: pointer;">Envoyer doc</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ══ DOCUMENTS RÉCENTS ══ -->
+          <div class="card fade-up d3" style="padding: 0; overflow: hidden;">
+            <div style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: #1a2410;">Documents récents</span>
+              <a href="#" style="font-size: 0.75rem; color: #3a7d54; text-decoration: none; font-weight: 500;">Voir tous →</a>
+            </div>
+            <div class="divider"></div>
+            <!-- Rows -->
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f4f7f2; transition: background 0.12s;" onmouseenter="this.style.background='#fafcf8'" onmouseleave="this.style.background=''">
+                <div style="width: 32px; height: 32px; background: #eff6ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" style="color: #3b82f6;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <p style="font-size: 0.82rem; font-weight: 500; color: #1a2410;">Facture Total Energies</p>
+                  <p style="font-size: 0.7rem; color: #8aaa78;">02/04/2026 · Facture</p>
+                </div>
+                <span class="badge badge-done">Traitée</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f4f7f2; transition: background 0.12s;" onmouseenter="this.style.background='#fafcf8'" onmouseleave="this.style.background=''">
+                <div style="width: 32px; height: 32px; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" style="color: #94a3b8;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <p style="font-size: 0.82rem; font-weight: 500; color: #1a2410;">CERFA PAC 2026</p>
+                  <p style="font-size: 0.7rem; color: #8aaa78;">30/03/2026 · Administratif</p>
+                </div>
+                <span class="badge badge-waiting">En cours</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; transition: background 0.12s;" onmouseenter="this.style.background='#fafcf8'" onmouseleave="this.style.background=''">
+                <div style="width: 32px; height: 32px; background: #fefce8; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" style="color: #d97706;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <p style="font-size: 0.82rem; font-weight: 500; color: #1a2410;">Relevé bancaire mars</p>
+                  <p style="font-size: 0.7rem; color: #8aaa78;">28/03/2026 · Finance</p>
+                </div>
+                <span class="badge badge-done">Traité</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── RIGHT ── -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- ÉCHÉANCES -->
+          <div class="card fade-up d2" style="padding: 18px 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" style="color: #3a7d54;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+              <span style="font-size: 0.85rem; font-weight: 600; color: #1a2410;">Échéances</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;">
+                <div style="width: 38px; height: 38px; background: #fef3c7; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: #92400e; line-height: 1;">30</span>
+                  <span style="font-size: 0.55rem; color: #d97706; font-weight: 600; letter-spacing: 0.04em;">AVR</span>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <p style="font-size: 0.82rem; font-weight: 600; color: #78350f;">TVA Q1</p>
+                  <p style="font-size: 0.68rem; color: #d97706; font-weight: 500;">⚠ 23 jours — urgent</p>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f2f5f0; border: 1px solid #d4dece; border-radius: 10px;">
+                <div style="width: 38px; height: 38px; background: #e4ebe0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: #1a2410; line-height: 1;">10</span>
+                  <span style="font-size: 0.55rem; color: #6b8f5a; font-weight: 600; letter-spacing: 0.04em;">MAI</span>
+                </div>
+                <div style="flex: 1;">
+                  <p style="font-size: 0.82rem; font-weight: 500; color: #2a3820;">MSA</p>
+                  <p style="font-size: 0.68rem; color: #8aaa78;">33 jours</p>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f2f5f0; border: 1px solid #d4dece; border-radius: 10px;">
+                <div style="width: 38px; height: 38px; background: #e4ebe0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: #1a2410; line-height: 1;">15</span>
+                  <span style="font-size: 0.55rem; color: #6b8f5a; font-weight: 600; letter-spacing: 0.04em;">MAI</span>
+                </div>
+                <div style="flex: 1;">
+                  <p style="font-size: 0.82rem; font-weight: 500; color: #2a3820;">Déclaration PAC</p>
+                  <p style="font-size: 0.68rem; color: #8aaa78;">38 jours</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- CHAT GRAINE -->
+          <div class="card fade-up d3" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="padding: 14px 16px; background: #0f2d1a; display: flex; align-items: center; gap: 9px;">
+              <div class="pulse" style="width: 8px; height: 8px; background: #3a9260; border-radius: 50%; flex-shrink: 0;"></div>
+              <span style="font-size: 0.82rem; font-weight: 600; color: #fff;">GRaiNE</span>
+              <span style="font-size: 0.65rem; color: rgba(255,255,255,0.35); font-weight: 300;">— posez vos questions</span>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-messages" class="scroll" style="padding: 14px; height: 240px; background: #fafcf8; display: flex; flex-direction: column; gap: 10px;">
+              <div class="bubble-ai">Bonjour Jean-Pierre. J'ai traité vos documents ce matin. La TVA arrive dans 23 jours — je peux préparer le dossier dès maintenant si vous le souhaitez.</div>
+              <div class="bubble-me">Combien j'ai dépensé en engrais ce mois-ci ?</div>
+              <div class="bubble-ai">Vos achats en engrais en avril s'élèvent à <strong>4 100€</strong> — répartis sur 3 fournisseurs. C'est +12% par rapport à mars. Voulez-vous un détail par fournisseur ?</div>
+            </div>
+
+            <!-- Input -->
+            <div style="padding: 10px 12px; border-top: 1px solid #e4ebe0; display: flex; gap: 8px; align-items: center; background: #fff;">
+              <input id="chat-input" type="text" placeholder="Posez une question à GRaiNE…" style="flex: 1; background: #f2f5f0; border: 1px solid #d4dece; border-radius: 9px; padding: 9px 13px; font-size: 0.78rem; font-family: 'Outfit', sans-serif; color: #1a2410; outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='#3a7d54'" onblur="this.style.borderColor='#d4dece'" onkeydown="if(event.key==='Enter')sendMsg()" />
+              <button onclick="sendMsg()" style="width: 34px; height: 34px; background: linear-gradient(135deg, #2a7549, #3a9260); border: none; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.15s;" onmouseenter="this.style.transform='scale(1.06)'" onmouseleave="this.style.transform='scale(1)'">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" style="color: #fff;"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="height: 10px;"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // ── Validate action ──
+  function validateAction(btn, label) {
+    btn.disabled = true;
+    btn.textContent = '✓ Validé';
+    btn.style.background = 'rgba(34,197,94,0.2)';
+    btn.style.color = '#4ade80';
+    btn.style.boxShadow = 'none';
+    btn.style.transform = 'none';
+
+    // Show confirmation in chat
+    const messages = document.getElementById('chat-messages');
+    const confirmDiv = document.createElement('div');
+    confirmDiv.className = 'bubble-ai';
+    confirmDiv.style.animation = 'fadeUp 0.3s ease';
+    if (label === 'TVA') {
+      confirmDiv.innerHTML = '✅ Déclaration TVA Q1 en cours de préparation. Je vous envoie le document dans quelques instants pour signature finale.';
+    } else {
+      confirmDiv.innerHTML = '✅ Rapport de consommation engrais généré. Vous trouverez le fichier dans vos documents.';
+    }
+    messages.appendChild(confirmDiv);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // ── Chat ──
+  const replies = [
+    "Votre dossier PAC est complet à 65%. Il manque uniquement le justificatif MSA. Voulez-vous que je prépare le courrier de demande ?",
+    "Vos dépenses totales en intrants sur avril : 8 240€. Engrais : 4 100€ · Semences : 2 340€ · Phytos : 1 800€.",
+    "La prochaine échéance critique est la TVA Q1 le 30 avril — dans 23 jours. Je peux préparer le dossier maintenant.",
+    "J'ai classé 124 documents ce mois-ci et économisé environ 18h de traitement manuel.",
+    "Pour la PAC, il vous reste à fournir le justificatif MSA. Je peux générer la demande de document dès votre accord.",
+  ];
+  let ri = 0;
+
+  function sendMsg() {
+    const input = document.getElementById('chat-input');
+    const messages = document.getElementById('chat-messages');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'bubble-me';
+    userDiv.style.animation = 'fadeUp 0.25s ease';
+    userDiv.textContent = text;
+    messages.appendChild(userDiv);
+    input.value = '';
+    messages.scrollTop = messages.scrollHeight;
+
+    const typing = document.createElement('div');
+    typing.className = 'bubble-ai';
+    typing.innerHTML = '<span style="opacity:0.45; font-size:0.72rem; font-style: italic;">GRaiNE réfléchit…</span>';
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
+
+    setTimeout(() => {
+      typing.innerHTML = replies[ri % replies.length];
+      ri++;
+      messages.scrollTop = messages.scrollHeight;
+    }, 900);
+  }
+
+  // Scroll chat to bottom
+  window.addEventListener('load', () => {
+    const m = document.getElementById('chat-messages');
+    m.scrollTop = m.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
